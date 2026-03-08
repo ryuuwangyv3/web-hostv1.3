@@ -77,7 +77,8 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
   // Security: Files to ignore at root or anywhere
   const IGNORED_PATTERNS = [".git", ".next", "dist", ".DS_Store"];
@@ -91,6 +92,21 @@ async function startServer() {
   };
 
   const PROJECTS_DIR = path.join(__dirname, "projects");
+  
+  // Auto-cleanup on server start: Wipe all AI-generated projects to keep environment fresh
+  try {
+    if (fsSync.existsSync(PROJECTS_DIR)) {
+      const entries = await fs.readdir(PROJECTS_DIR);
+      for (const entry of entries) {
+        const fullPath = path.join(PROJECTS_DIR, entry);
+        await fs.rm(fullPath, { recursive: true, force: true });
+      }
+      console.log("🧹 Projects directory cleared on startup.");
+    }
+  } catch (err) {
+    console.error("Failed to clear projects on startup:", err);
+  }
+
   await fs.mkdir(PROJECTS_DIR, { recursive: true });
 
   const isSafePath = (filePath: string) => {
@@ -127,6 +143,20 @@ async function startServer() {
       res.json({ success: true, path: `projects/${name}` });
     } catch (error) {
       res.status(500).json({ error: "Failed to create project" });
+    }
+  });
+
+  // API: Clear all projects
+  app.post("/api/projects/clear", async (req, res) => {
+    try {
+      const entries = await fs.readdir(PROJECTS_DIR);
+      for (const entry of entries) {
+        const fullPath = path.join(PROJECTS_DIR, entry);
+        await fs.rm(fullPath, { recursive: true, force: true });
+      }
+      res.json({ success: true, message: "All projects cleared" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to clear projects" });
     }
   });
 

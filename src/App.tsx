@@ -67,6 +67,20 @@ export default function App() {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const folderInputRef = React.useRef<HTMLInputElement>(null);
 
+  // Clear projects on every app "update" (mount/refresh) as requested
+  React.useEffect(() => {
+    const clearProjects = async () => {
+      try {
+        await fetch("/api/projects/clear", { method: "POST" });
+        console.log("🧹 Environment refreshed: AI projects cleared.");
+        if (view === "editor") fetchFiles();
+      } catch (err) {
+        console.error("Failed to clear projects on mount", err);
+      }
+    };
+    clearProjects();
+  }, []);
+
   const fetchFiles = async () => {
     try {
       const url = currentProject ? `/api/files?root=${encodeURIComponent(currentProject.path)}` : "/api/files";
