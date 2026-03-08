@@ -68,7 +68,7 @@ export const SandboxModal: React.FC<SandboxModalProps> = ({ isOpen, onClose }) =
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow) return;
     try {
-      iframe.contentWindow.eval(jsCode);
+      (iframe.contentWindow as any).eval(jsCode);
       addLog("success", "JS Script executed");
     } catch (err: any) {
       addLog("error", `JS Execution failed: ${err.message}`);

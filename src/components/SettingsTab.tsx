@@ -1,10 +1,24 @@
 import React from "react";
-import { Settings, Monitor, Type, Shield, Zap, Globe } from "lucide-react";
+import { Settings as SettingsIcon, Monitor, Type, Shield, Zap, Globe } from "lucide-react";
 import { motion } from "motion/react";
+import { useSettings } from "../contexts/SettingsContext";
 
 export const SettingsTab: React.FC = () => {
-  const [fontSize, setFontSize] = React.useState(13);
-  const [theme, setTheme] = React.useState("dark-plus");
+  const { settings, updateSettings } = useSettings();
+
+  const toggleFeature = (key: keyof typeof settings) => {
+    if (typeof settings[key] === 'boolean') {
+      updateSettings({ [key]: !settings[key] });
+    }
+  };
+
+  const features = [
+    { label: "Auto-save changes", key: "autoSave" as const },
+    { label: "Enable AI code suggestions", key: "aiSuggestions" as const },
+    { label: "Show line numbers", key: "showLineNumbers" as const },
+    { label: "Word wrap", key: "wordWrap" as const },
+    { label: "Format on save", key: "formatOnSave" as const }
+  ];
 
   return (
     <div className="p-6 max-w-2xl mx-auto w-full space-y-8 overflow-y-auto h-full scrollbar-hide">
@@ -25,8 +39,8 @@ export const SettingsTab: React.FC = () => {
             <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-2">
               <label className="text-xs font-bold text-white/60">Editor Theme</label>
               <select 
-                value={theme}
-                onChange={(e) => setTheme(e.target.value)}
+                value={settings.theme}
+                onChange={(e) => updateSettings({ theme: e.target.value })}
                 className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs outline-none focus:border-indigo-500 transition-all"
               >
                 <option value="dark-plus">Akasha Dark Plus</option>
@@ -43,11 +57,11 @@ export const SettingsTab: React.FC = () => {
                   type="range" 
                   min="10" 
                   max="24" 
-                  value={fontSize}
-                  onChange={(e) => setFontSize(parseInt(e.target.value))}
+                  value={settings.fontSize}
+                  onChange={(e) => updateSettings({ fontSize: parseInt(e.target.value) })}
                   className="flex-1 accent-indigo-500"
                 />
-                <span className="text-xs font-mono text-indigo-400 w-8">{fontSize}px</span>
+                <span className="text-xs font-mono text-indigo-400 w-8">{settings.fontSize}px</span>
               </div>
             </div>
           </div>
@@ -61,17 +75,15 @@ export const SettingsTab: React.FC = () => {
           </div>
           
           <div className="space-y-2">
-            {[
-              { label: "Auto-save changes", enabled: true },
-              { label: "Enable AI code suggestions", enabled: true },
-              { label: "Show line numbers", enabled: true },
-              { label: "Word wrap", enabled: false },
-              { label: "Format on save", enabled: true }
-            ].map((feature, i) => (
-              <div key={i} className="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-xl">
+            {features.map((feature, i) => (
+              <div 
+                key={i} 
+                className="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-xl cursor-pointer hover:bg-white/[0.07] transition-colors"
+                onClick={() => toggleFeature(feature.key)}
+              >
                 <span className="text-xs text-white/80">{feature.label}</span>
-                <div className={`w-8 h-4 rounded-full relative transition-all ${feature.enabled ? 'bg-indigo-600' : 'bg-white/10'}`}>
-                  <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${feature.enabled ? 'right-0.5' : 'left-0.5'}`} />
+                <div className={`w-8 h-4 rounded-full relative transition-all ${settings[feature.key] ? 'bg-indigo-600' : 'bg-white/10'}`}>
+                  <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${settings[feature.key] ? 'right-0.5' : 'left-0.5'}`} />
                 </div>
               </div>
             ))}

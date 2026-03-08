@@ -37,8 +37,10 @@ import { ConsoleTab } from "./components/ConsoleTab";
 import { Dashboard } from "./components/Dashboard";
 import { ChatTab } from "./components/ChatTab";
 import { SettingsTab } from "./components/SettingsTab";
+import { useSettings } from "./contexts/SettingsContext";
 
 export default function App() {
+  const { settings } = useSettings();
   const [view, setView] = React.useState<"dashboard" | "editor">("dashboard");
   const [currentProject, setCurrentProject] = React.useState<{ name: string; path: string } | null>(null);
   const [files, setFiles] = React.useState<FileNode[]>([]);
@@ -91,17 +93,18 @@ export default function App() {
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (contentToSave?: string) => {
     if (!selectedFile || saving) return;
+    const finalContent = contentToSave !== undefined ? contentToSave : code;
     setSaving(true);
     try {
       const res = await fetch("/api/file", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: selectedFile, content: code }),
+        body: JSON.stringify({ path: selectedFile, content: finalContent }),
       });
       if (res.ok) {
-        setOriginalCode(code);
+        setOriginalCode(finalContent);
       }
     } catch (err) {
       console.error("Failed to save file", err);
@@ -109,6 +112,26 @@ export default function App() {
       setSaving(false);
     }
   };
+
+  // Auto-save and Format-on-save logic
+  React.useEffect(() => {
+    if (!settings.autoSave || !selectedFile || code === originalCode) return;
+
+    const timer = setTimeout(() => {
+      let contentToSave = code;
+      if (settings.formatOnSave) {
+        // Simple formatting: trim trailing whitespace and ensure final newline
+        contentToSave = code.split('\n').map(line => line.trimEnd()).join('\n');
+        if (!contentToSave.endsWith('\n')) contentToSave += '\n';
+        if (contentToSave !== code) {
+          setCode(contentToSave);
+        }
+      }
+      handleSave(contentToSave);
+    }, 1500); // 1.5s debounce for auto-save
+
+    return () => clearTimeout(timer);
+  }, [code, settings.autoSave, settings.formatOnSave, selectedFile]);
 
   React.useEffect(() => {
     if (view === "editor") {
@@ -399,6 +422,13 @@ export default function App() {
   };
 
   const handleExecuteCommand = async (command: string) => {
+    // Log command to console
+    window.postMessage({
+      type: "AKASHA_CONSOLE_LOG",
+      logType: "log",
+      args: [`> AI Executing: ${command}`]
+    }, "*");
+
     try {
       const res = await fetch("/api/shell", {
         method: "POST",
@@ -406,6 +436,35 @@ export default function App() {
         body: JSON.stringify({ command, projectPath: currentProject?.path }),
       });
       const data = await res.json();
+      
+      // Log results to console
+      if (data.stdout) {
+        window.postMessage({
+          type: "AKASHA_CONSOLE_LOG",
+          logType: "log",
+          args: [data.stdout]
+        }, "*");
+      }
+      if (data.stderr) {
+        window.postMessage({
+          type: "AKASHA_CONSOLE_LOG",
+          logType: "error",
+          args: [data.stderr]
+        }, "*");
+      }
+      if (data.error) {
+        window.postMessage({
+          type: "AKASHA_CONSOLE_LOG",
+          logType: "error",
+          args: [`Execution Error: ${data.error}`]
+        }, "*");
+      }
+
+      window.postMessage({
+        type: "AKASHA_CONSOLE_LOG",
+        logType: "info",
+        args: [`✓ Command finished: ${command}`]
+      }, "*");
       
       // Refresh file tree in case files were created/deleted
       window.dispatchEvent(new CustomEvent("AKASHA_REFRESH_FILES"));
@@ -416,6 +475,11 @@ export default function App() {
         error: data.error || (data.validationFailed ? "Validation Failed" : undefined)
       };
     } catch (err: any) {
+      window.postMessage({
+        type: "AKASHA_CONSOLE_LOG",
+        logType: "error",
+        args: [`Fetch Error: ${err.message}`]
+      }, "*");
       return { stdout: "", stderr: "", error: err.message };
     }
   };
@@ -507,18 +571,40 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen w-full bg-[#050505] text-white overflow-hidden selection:bg-white/20">
+    <div 
+      className={cn(
+        "flex h-[100dvh] w-full bg-[#050505] text-white overflow-hidden selection:bg-white/20",
+        settings.theme === "midnight" && "bg-black",
+        settings.theme === "cyberpunk" && "bg-[#0a001a] text-cyan-400",
+        settings.theme === "minimal" && "bg-[#1a1a1a] text-gray-300"
+      )}
+      data-theme={settings.theme}
+    >
+      {/* Sidebar Overlay for Mobile */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSidebarOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
       <AnimatePresence mode="wait">
         {sidebarOpen && (
           <motion.aside
+            key="sidebar"
             initial={{ x: -300, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -300, opacity: 0 }}
             transition={{ type: "spring", damping: 20, stiffness: 100 }}
-            className="w-64 h-full border-r border-white/5 flex flex-col bg-[#0a0a0a] z-50"
+            className="fixed lg:relative w-64 h-full border-r border-white/5 flex flex-col bg-[#0a0a0a] z-50 shadow-2xl lg:shadow-none"
           >
-            <div className="p-4 border-bottom border-white/5 flex items-center justify-between">
+            <div className="p-4 border-b border-white/5 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button 
                   onClick={() => handleOpenProject(null)}
@@ -666,35 +752,35 @@ export default function App() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 relative">
         {/* Header */}
-        <header className="h-12 border-b border-white/5 flex items-center justify-between px-4 bg-[#050505]/80 backdrop-blur-xl sticky top-0 z-40">
-          <div className="flex items-center gap-3">
+        <header className="h-14 sm:h-12 border-b border-white/5 flex items-center justify-between px-3 sm:px-4 bg-[#050505]/80 backdrop-blur-xl sticky top-0 z-40">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             {!sidebarOpen && (
               <button 
                 onClick={() => setSidebarOpen(true)}
-                className="p-1.5 hover:bg-white/5 rounded-lg transition-colors"
+                className="p-2 hover:bg-white/5 rounded-lg transition-colors shrink-0"
               >
                 <Menu size={18} />
               </button>
             )}
-            <div className="flex items-center gap-2 text-xs text-white/60">
-              <FileCode size={14} />
-              <span className="font-mono truncate max-w-[120px] sm:max-w-none">
+            <div className="flex items-center gap-2 text-xs text-white/60 min-w-0 truncate">
+              <FileCode size={14} className="shrink-0" />
+              <span className="font-mono truncate max-w-[150px] sm:max-w-none">
                 {selectedFile || "Select a file"}
               </span>
               {isModified && (
-                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse shrink-0" />
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 ml-2">
             <button 
               onClick={() => window.open(window.location.origin + previewPath, '_blank')}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 border border-white/10 text-white rounded-lg text-xs font-semibold hover:bg-white/10 transition-all active:scale-95"
+              className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 bg-white/5 border border-white/10 text-white rounded-lg text-[10px] sm:text-xs font-semibold hover:bg-white/10 transition-all active:scale-95"
               title="Open Preview in New Tab"
             >
               <ExternalLink size={14} />
-              <span className="hidden lg:inline">Open Preview</span>
+              <span className="hidden md:inline">Open Preview</span>
             </button>
             {selectedFile?.endsWith(".html") && (
               <button 
@@ -702,16 +788,16 @@ export default function App() {
                   setPreviewPath("/" + selectedFile);
                   setActiveTab("preview");
                 }}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-xs font-semibold hover:bg-emerald-500/20 transition-all active:scale-95"
+                className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-[10px] sm:text-xs font-semibold hover:bg-emerald-500/20 transition-all active:scale-95"
               >
                 <Globe size={14} />
-                <span className="hidden lg:inline">Preview File</span>
+                <span className="hidden md:inline">Preview File</span>
               </button>
             )}
             <button 
-              onClick={handleSave}
+              onClick={() => handleSave()}
               disabled={!selectedFile || !isModified || saving}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white text-black rounded-lg text-xs font-semibold hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+              className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 bg-white text-black rounded-lg text-[10px] sm:text-xs font-semibold hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
             >
               <Save size={14} />
               <span className="hidden sm:inline">{saving ? "Saving..." : "Save"}</span>
@@ -723,34 +809,36 @@ export default function App() {
         <div className="flex-1 flex overflow-hidden">
           <div className="flex-1 flex flex-col relative overflow-hidden">
             {/* Tabs */}
-            <div className="flex border-b border-white/5 bg-[#0a0a0a]">
-              {[
-                { id: "editor", icon: FileCode, label: "Source" },
-                { id: "preview", icon: Globe, label: "Preview" },
-                { id: "chat", icon: Sparkles, label: "AI Assistant" },
-                { id: "git", icon: GitBranch, label: "Git" },
-                { id: "inspect", icon: Cpu, label: "Inspect" },
-                { id: "terminal", icon: Terminal, label: "Console" },
-                { id: "settings", icon: Settings, label: "Settings" },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-4 py-2 text-[11px] font-medium transition-all relative",
-                    activeTab === tab.id ? "text-white" : "text-white/40 hover:text-white/60"
-                  )}
-                >
-                  <tab.icon size={13} />
-                  {tab.label}
-                  {activeTab === tab.id && (
-                    <motion.div 
-                      layoutId="activeTab"
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-white"
-                    />
-                  )}
-                </button>
-              ))}
+            <div className="flex border-b border-white/5 bg-[#0a0a0a] overflow-x-auto scrollbar-none">
+              <div className="flex min-w-max">
+                {[
+                  { id: "editor", icon: FileCode, label: "Source" },
+                  { id: "preview", icon: Globe, label: "Preview" },
+                  { id: "chat", icon: Sparkles, label: "AI Assistant" },
+                  { id: "git", icon: GitBranch, label: "Git" },
+                  { id: "inspect", icon: Cpu, label: "Inspect" },
+                  { id: "terminal", icon: Terminal, label: "Console" },
+                  { id: "settings", icon: Settings, label: "Settings" },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-medium transition-all relative shrink-0",
+                      activeTab === tab.id ? "text-white" : "text-white/40 hover:text-white/60"
+                    )}
+                  >
+                    <tab.icon size={13} />
+                    <span className="whitespace-nowrap">{tab.label}</span>
+                    {activeTab === tab.id && (
+                      <motion.div 
+                        layoutId="activeTab"
+                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-white"
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="flex-1 overflow-hidden relative">
@@ -770,8 +858,9 @@ export default function App() {
                 ) : null}
               </AnimatePresence>
 
-              {activeTab === "editor" ? (
-                selectedFile ? (
+              {/* Tab Contents - Kept mounted to prevent state loss/process interruption */}
+              <div className={cn("h-full", activeTab !== "editor" && "hidden")}>
+                {selectedFile ? (
                   <CodeEditor 
                     code={code} 
                     onChange={setCode} 
@@ -785,8 +874,10 @@ export default function App() {
                     <h2 className="text-xl font-semibold text-white/40 mb-2">No File Selected</h2>
                     <p className="text-sm max-w-xs">Select a file from the explorer to start inspecting and editing the source code.</p>
                   </div>
-                )
-              ) : activeTab === "chat" ? (
+                )}
+              </div>
+
+              <div className={cn("h-full", activeTab !== "chat" && "hidden")}>
                 <ChatTab 
                   currentCode={code} 
                   fileName={selectedFile} 
@@ -800,7 +891,9 @@ export default function App() {
                   onExecuteCommand={handleExecuteCommand}
                   projectPath={currentProject?.path}
                 />
-              ) : activeTab === "preview" ? (
+              </div>
+
+              <div className={cn("h-full", activeTab !== "preview" && "hidden")}>
                 <div className="h-full flex flex-col bg-white">
                   <div className="h-10 bg-[#1a1a1a] border-b border-white/5 flex items-center justify-between px-4">
                     <div className="flex items-center gap-3">
@@ -889,15 +982,23 @@ export default function App() {
                     title="Web Preview"
                   />
                 </div>
-              ) : activeTab === "inspect" ? (
+              </div>
+
+              <div className={cn("h-full", activeTab !== "inspect" && "hidden")}>
                 <InspectTab onLaunchSandbox={() => setSandboxOpen(true)} />
-              ) : activeTab === "git" ? (
+              </div>
+
+              <div className={cn("h-full", activeTab !== "git" && "hidden")}>
                 <GitTab currentProject={currentProject} />
-              ) : activeTab === "settings" ? (
+              </div>
+
+              <div className={cn("h-full", activeTab !== "settings" && "hidden")}>
                 <SettingsTab />
-              ) : (
+              </div>
+
+              <div className={cn("h-full", activeTab !== "terminal" && "hidden")}>
                 <ConsoleTab projectPath={currentProject?.path} />
-              )}
+              </div>
             </div>
           </div>
         </div>

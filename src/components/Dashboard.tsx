@@ -364,9 +364,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenProject }) => {
   );
 
   return (
-    <div className="h-screen flex flex-col bg-[#050505] text-white font-sans selection:bg-indigo-500/30 overflow-hidden">
+    <div className="h-[100dvh] flex flex-col bg-[#050505] text-white font-sans selection:bg-indigo-500/30 overflow-hidden">
       {/* Header */}
-      <header className="h-12 border-b border-white/5 bg-white/[0.02] backdrop-blur-xl flex items-center justify-between px-4 sm:px-8 shrink-0 z-10">
+      <header className="h-14 sm:h-12 border-b border-white/5 bg-white/[0.02] backdrop-blur-xl flex items-center justify-between px-4 sm:px-8 shrink-0 z-10">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 bg-indigo-500 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
             <Folder className="text-white" size={16} />
@@ -390,46 +390,46 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenProject }) => {
       </header>
 
       <main className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 sm:py-10">
           {/* Hero Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-8">
           <button 
             onClick={() => setShowNewModal(true)}
-            className="group relative overflow-hidden bg-indigo-600 hover:bg-indigo-500 p-4 rounded-xl transition-all text-left shadow-xl shadow-indigo-500/10"
+            className="group relative overflow-hidden bg-indigo-600 hover:bg-indigo-500 p-3 sm:p-4 rounded-xl transition-all text-left shadow-xl shadow-indigo-500/10"
           >
             <div className="relative z-10">
-              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                <Plus size={18} />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/20 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <Plus size={16} />
               </div>
-              <h3 className="text-base font-bold mb-0.5">New Project</h3>
-              <p className="text-white/60 text-[10px]">Create a fresh workspace</p>
+              <h3 className="text-sm sm:text-base font-bold mb-0.5">New Project</h3>
+              <p className="text-white/60 text-[9px] hidden sm:block">Create a fresh workspace</p>
             </div>
             <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-all" />
           </button>
 
           <button 
             onClick={() => setShowGithubModal(true)}
-            className="group relative overflow-hidden bg-white/5 hover:bg-white/[0.08] border border-white/5 p-4 rounded-xl transition-all text-left"
+            className="group relative overflow-hidden bg-white/5 hover:bg-white/[0.08] border border-white/5 p-3 sm:p-4 rounded-xl transition-all text-left"
           >
             <div className="relative z-10">
-              <div className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                <Github size={18} />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/5 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <Github size={16} />
               </div>
-              <h3 className="text-base font-bold mb-0.5">Import GitHub</h3>
-              <p className="text-white/40 text-[10px]">Clone a repository</p>
+              <h3 className="text-sm sm:text-base font-bold mb-0.5">GitHub</h3>
+              <p className="text-white/40 text-[9px] hidden sm:block">Clone a repository</p>
             </div>
           </button>
 
           <button 
             onClick={() => folderInputRef.current?.click()}
-            className="group relative overflow-hidden bg-white/5 hover:bg-white/[0.08] border border-white/5 p-4 rounded-xl transition-all text-left"
+            className="group relative overflow-hidden bg-white/5 hover:bg-white/[0.08] border border-white/5 p-3 sm:p-4 rounded-xl transition-all text-left"
           >
             <div className="relative z-10">
-              <div className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                <Upload size={18} />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/5 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <Upload size={16} />
               </div>
-              <h3 className="text-base font-bold mb-0.5">Upload Folder</h3>
-              <p className="text-white/40 text-[10px]">Import local project folder</p>
+              <h3 className="text-sm sm:text-base font-bold mb-0.5">Folder</h3>
+              <p className="text-white/40 text-[9px] hidden sm:block">Import project folder</p>
             </div>
             <input 
               type="file" 
@@ -442,14 +442,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenProject }) => {
 
           <button 
             onClick={() => zipInputRef.current?.click()}
-            className="group relative overflow-hidden bg-white/5 hover:bg-white/[0.08] border border-white/5 p-4 rounded-xl transition-all text-left"
+            className="group relative overflow-hidden bg-white/5 hover:bg-white/[0.08] border border-white/5 p-3 sm:p-4 rounded-xl transition-all text-left"
           >
             <div className="relative z-10">
-              <div className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                <Download size={18} className="rotate-180" />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/5 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <Download size={16} className="rotate-180" />
               </div>
-              <h3 className="text-base font-bold mb-0.5">Upload ZIP</h3>
-              <p className="text-white/40 text-[10px]">Auto-extract ZIP project</p>
+              <h3 className="text-sm sm:text-base font-bold mb-0.5">ZIP</h3>
+              <p className="text-white/40 text-[9px] hidden sm:block">Auto-extract ZIP</p>
             </div>
             <input 
               type="file" 
@@ -463,22 +463,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenProject }) => {
 
         {/* Projects List */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <h2 className="text-lg sm:text-xl font-bold tracking-tight flex items-center gap-2">
               Recent Projects
               <span className="text-[10px] font-normal text-white/20 bg-white/5 px-1.5 py-0.5 rounded-full">{projects.length}</span>
             </h2>
-            <div className="flex items-center gap-1.5 text-[10px] text-white/40">
+            <div className="flex items-center justify-between sm:justify-end gap-1.5 text-[10px] text-white/40">
               <button 
                 onClick={handleCleanupPaths}
-                className="flex items-center gap-1 px-2 py-1 bg-white/5 hover:bg-white/10 rounded-md transition-colors mr-2 text-indigo-400"
+                className="flex items-center gap-1 px-2 py-1 bg-white/5 hover:bg-white/10 rounded-md transition-colors text-indigo-400"
                 title="Fix folder/file names with 'primary:' prefix"
               >
                 <RefreshCw size={10} />
-                <span>Fix Path Prefixes</span>
+                <span>Fix Paths</span>
               </button>
-              <Clock size={12} />
-              <span>Updated: Just now</span>
+              <div className="flex items-center gap-1.5">
+                <Clock size={12} />
+                <span>Updated: Just now</span>
+              </div>
             </div>
           </div>
 
@@ -578,7 +580,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenProject }) => {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-3xl p-8 shadow-2xl"
+              className="relative w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl"
             >
               <h2 className="text-2xl font-bold mb-6">Create New Project</h2>
               <form onSubmit={handleCreateProject} className="space-y-4">
@@ -627,7 +629,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenProject }) => {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-3xl p-8 shadow-2xl"
+              className="relative w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl"
             >
               <div className="flex items-center gap-3 mb-6">
                 <Github className="text-indigo-500" size={24} />
@@ -722,7 +724,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenProject }) => {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-3xl p-8 shadow-2xl"
+              className="relative w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl"
             >
               <h2 className="text-2xl font-bold mb-6">Rename Project</h2>
               <form onSubmit={handleRenameProject} className="space-y-4">
@@ -770,7 +772,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenProject }) => {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-3xl p-8 shadow-2xl text-center"
+              className="relative w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl text-center"
             >
               <div className="w-16 h-16 bg-red-500/20 rounded-2xl flex items-center justify-center mx-auto text-red-500 mb-6">
                 <Trash2 size={32} />

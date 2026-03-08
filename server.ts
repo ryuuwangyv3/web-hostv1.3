@@ -80,7 +80,7 @@ async function startServer() {
   app.use(express.json());
 
   // Security: Files to ignore at root or anywhere
-  const IGNORED_PATTERNS = [".env", ".git", ".next", "node_modules", "dist", ".DS_Store"];
+  const IGNORED_PATTERNS = [".git", ".next", "dist", ".DS_Store"];
 
   const isIgnored = (filePath: string) => {
     const fileName = path.basename(filePath);
@@ -151,7 +151,7 @@ async function startServer() {
             if (dir === __dirname && entry.name === "projects") return null;
 
             if (entry.isDirectory()) {
-              const children = entry.name === "node_modules" ? [] : await getFiles(resPath);
+              const children = await getFiles(resPath);
               return {
                 name: entry.name,
                 path: relativePath,
